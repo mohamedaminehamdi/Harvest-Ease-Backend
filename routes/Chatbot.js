@@ -1,3 +1,5 @@
-const express=require("express")
-const router=express.Router();
-module.exports=router;
+import express from "express";
+
+const router = express.Router();
+
+export default router;
