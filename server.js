@@ -10,9 +10,11 @@ import scannerRoutes from "./routes/plant-health-scanner.js";
 import schedulerRoutes from "./routes/scheduler.js";
 import bodyParser from "body-parser";
 import helmet from "helmet";
+
 dotenv.config();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
@@ -26,7 +28,18 @@ app.use("/chatbot", chatbotRoutes);
 app.use("/Resources-tracker", ressourcesRoutes);
 app.use("/Plant-health-scanner", scannerRoutes);
 app.use("/Farm-scheduler", schedulerRoutes);
+/*
+// schedule
+app.post('/add-event', scheduleController.addEvent);
+app.get('/events', scheduleController.  getAllEvents); // New route for getting all events
+// Get Event by ID
+app.get('/events/:eventId', scheduleController.getEventById);
+// Update Event by ID
+app.put('/events/:eventId', scheduleController.updateEventById);
 
+// Delete Event by ID
+app.delete('/events/:eventId', scheduleController.deleteEventById);
+*/
 //mongoose setup
 const PORT = process.env.PORT || 5000;
 connectDB()
