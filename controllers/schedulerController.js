@@ -5,7 +5,7 @@ import moment from 'moment';
 const addEvent = async (req, res) => {
   const { eventId, title, description, startTime, endTime } = req.body;
 
-  if (!eventId || !title || !startTime || !endTime) {
+  if ( !title || !startTime || !endTime) {
     return res.status(400).json({ error: 'Please provide all required fields: eventId, title, startTime, endTime' });
   }
 
@@ -15,12 +15,12 @@ const addEvent = async (req, res) => {
       return res.status(400).json({ error: 'Event with this eventId already exists' });
     }
 
-    if (!moment(startTime, 'HH:mm', true).isValid() || !moment(endTime, 'HH:mm', true).isValid()) {
-      return res.status(400).json({ error: 'Invalid start time or end time format. Use HH:MM format.' });
+    if (!moment(startTime, moment.ISO_8601, true).isValid() || !moment(endTime, moment.ISO_8601, true).isValid()) {
+      return res.status(400).json({ error: 'Invalid start time or end time format. Use ISO 8601 format.' });
     }
 
-    const parsedStartTime = moment(startTime, 'HH:mm').toDate();
-    const parsedEndTime = moment(endTime, 'HH:mm').toDate();
+    const parsedStartTime = moment(startTime).toDate();
+    const parsedEndTime = moment(endTime).toDate();
 
     const newEvent = new Event({ eventId, title, description, startTime: parsedStartTime, endTime: parsedEndTime });
     await newEvent.save();
@@ -65,6 +65,14 @@ const updateEventById = async (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
     const eventDataToUpdate = req.body;
+
+    if (eventDataToUpdate.startTime && !moment(eventDataToUpdate.startTime, moment.ISO_8601, true).isValid()) {
+      return res.status(400).json({ error: 'Invalid start time format. Use ISO 8601 format.' });
+    }
+
+    if (eventDataToUpdate.endTime && !moment(eventDataToUpdate.endTime, moment.ISO_8601, true).isValid()) {
+      return res.status(400).json({ error: 'Invalid end time format. Use ISO 8601 format.' });
+    }
 
     const updatedEvent = await Event.findOneAndUpdate({ eventId }, eventDataToUpdate, { new: true });
 

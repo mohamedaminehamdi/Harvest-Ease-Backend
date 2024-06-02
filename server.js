@@ -10,6 +10,7 @@ import scannerRoutes from "./routes/plant-health-scanner.js";
 import schedulerRoutes from "./routes/scheduler.js";
 import bodyParser from "body-parser";
 import helmet from "helmet";
+import settingsRoutes from"./routes/userSettings.js";
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use("/chatbot", chatbotRoutes);
 app.use("/Resources-tracker", ressourcesRoutes);
 app.use("/Plant-health-scanner", scannerRoutes);
 app.use("/Farm-scheduler", schedulerRoutes);
+app.use("/settings", settingsRoutes);
 /*
 // schedule
 app.post('/add-event', scheduleController.addEvent);
