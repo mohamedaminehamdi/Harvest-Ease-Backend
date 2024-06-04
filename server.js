@@ -38,3 +38,8 @@ connectDB()
     console.error("Unable to start server:", err);
     process.exit(1);
   });
+
+
+  app.use(cors({
+    origin: 'http://localhost:3000' 
+  }));
