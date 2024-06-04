@@ -27,19 +27,6 @@ app.use("/chatbot", chatbotRoutes);
 app.use("/Resources-tracker", ressourcesRoutes);
 app.use("/Farm-scheduler", schedulerRoutes);
 app.use("/settings", settingsRoutes);
-/*
-// schedule
-app.post('/add-event', scheduleController.addEvent);
-app.get('/events', scheduleController.  getAllEvents); // New route for getting all events
-// Get Event by ID
-app.get('/events/:eventId', scheduleController.getEventById);
-// Update Event by ID
-app.put('/events/:eventId', scheduleController.updateEventById);
-
-// Delete Event by ID
-app.delete('/events/:eventId', scheduleController.deleteEventById);
-*/
-//mongoose setup
 const PORT = process.env.PORT ;
 connectDB()
   .then(() => {
