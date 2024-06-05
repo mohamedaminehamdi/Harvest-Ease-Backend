@@ -12,17 +12,16 @@ import helmet from "helmet";
 import settingsRoutes from "./routes/userSettings.js";
 import multer from "multer";
 import { register } from "./controllers/auth.js";
+import settingsRoutes from "./routes/userSettings.js";
 
 dotenv.config();
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
-app.use(cors());
 
 // routes with files
 const storage = multer.diskStorage({
@@ -55,3 +54,8 @@ connectDB()
     console.error("Unable to start server:", err);
     process.exit(1);
   });
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);

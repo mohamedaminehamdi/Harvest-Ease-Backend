@@ -3,6 +3,7 @@ const router = express.Router();
 import { createComment, addReply } from '../controllers/forum/commentscontroller.js';
 import { getAllComments, deleteTweet, updateTweet, createTweet ,getAllTweets,updateLikes } from "../controllers/forum/tweetsCont.js";
 import Comment from '../models/comments.js'
+import Tweet from "../models/tweets.js";
 router.get('/comments', async (req, res) => {
   try {
     const comments = await Comment.find(); 
@@ -12,13 +13,21 @@ router.get('/comments', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-// Route to create a new tweet
+//  Route to create a new tweet
 router.post('/tweets', async (req, res) => {
   createTweet(req, res);
 });
 router.put('/tweets/:tweetId/likes', updateLikes);
 
-
+router.get('/tweets', async (req, res) => {
+  try {
+    const tweets = await Tweet.find() // Assuming 'ownerId' references the User model
+    res.status(200).json(tweets);
+  } catch (error) {
+    console.error('Error fetching tweets:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 router.put('/tweets/:tweetId', async (req, res) => {
   updateTweet(req, res);
 });
