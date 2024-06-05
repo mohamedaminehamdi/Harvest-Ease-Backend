@@ -1,17 +1,8 @@
 import express from "express";
 const router = express.Router();
 import User from "../models/user.js"
-// Create a new user   
-router.post('/new', async (req, res) => {
-    const { userId,userFirstName, userLastName, userAge  } = req.body;
-    try {
-        const newUser = new User({ userId,userFirstName, userLastName, userAge  });
-        await newUser.save();
-        res.status(201).json(newUser);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
+import bcrypt from "bcrypt"
+import mongoose from "mongoose"
 router.get('/users', async (req, res) => {
         try {
           const users = await User.find();
@@ -37,41 +28,74 @@ router.get('/users/:userId', async (req, res) => {
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
-      return res.status(200).json(user);
+      return res.status(200).json({name : user.name});
     } catch (error) {
       console.error('Error getting user by ID:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
 // **Update User Credentials (Password Change)**
+
 router.put('/users/:userId', async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
-    if (isNaN(userId)) {
+    const userId = req.params.userId;
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ error: 'Invalid userId' });
     }
 
-    // Validate and hash new password (implementation omitted for brevity)
+    // Validate and hash new password
     const { newPassword } = req.body;
-    // ... (code to validate and hash newPassword)
+    if (!newPassword) {
+      return res.status(400).json({ error: 'New password is required' });
+    }
 
-    const updatedUser = await User.findOneAndUpdate(
-      { userId: userId },
-      { password: hashedPassword }, // Replace with hashed password
-      { new: true } // Return the updated user
-    );
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    if (!updatedUser) {
+    // Find the user by ObjectId and update the password
+    const user = await User.findById(userId);
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json({ message: 'User credentials updated successfully' }); // Informative message
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'User credentials updated successfully' });
   } catch (error) {
     console.error('Error updating user credentials:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+router.put('/users/:userId/email', async (req, res) => {
+  try {
+    const userId = req.params.userId;
 
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
+    }
+
+    const { newEmail } = req.body;
+
+    // Validate new email
+    if (!newEmail) {
+      return res.status(400).json({ error: 'New email is required' });
+    }
+    // Find the user by ObjectId and update the email
+    const user = await User.findByIdAndUpdate(userId, { email: newEmail }, { new: true });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Email updated successfully', user });
+  } catch (error) {
+    console.error('Error updating user email:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 // **Delete User**
 router.delete('/users/:userId', async (req, res) => {
   try {

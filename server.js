@@ -10,10 +10,8 @@ import schedulerRoutes from "./routes/scheduler.js";
 import bodyParser from "body-parser";
 import helmet from "helmet";
 import settingsRoutes from"./routes/userSettings.js";
-
 dotenv.config();
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
@@ -42,4 +40,4 @@ connectDB()
 
   app.use(cors({
     origin: 'http://localhost:3000' 
-  }));
+  }));  

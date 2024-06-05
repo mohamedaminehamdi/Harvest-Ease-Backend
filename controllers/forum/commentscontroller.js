@@ -1,16 +1,29 @@
 import Comment from '../../models/comments.js';
-import mongoose from 'mongoose'
+import Tweet from '../../models/tweets.js'; // Import your Tweet model
+import mongoose from 'mongoose';
+
 export async function createComment(req, res) {
   try {
     const tweetId = req.params.tweetId;
-    const { content } = req.body; 
+    const { content } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(tweetId)) {
       return res.status(400).json({ error: 'Invalid tweet ID format' });
     }
 
-    const newComment = new Comment({ content, tweet: tweetId }); 
+    const newComment = new Comment({ content, tweet: tweetId , ownerId });
     await newComment.save();
+
+    // Update the corresponding tweet to include the new comment
+    const updatedTweet = await Tweet.findByIdAndUpdate(
+      tweetId,
+      { $push: { comments: newComment._id } }, // Assuming the comments field is an array of comment IDs
+      { new: true }
+    );
+
+    if (!updatedTweet) {
+      return res.status(404).json({ error: 'Tweet not found' });
+    }
 
     res.status(201).json(newComment);
   } catch (err) {
@@ -29,9 +42,11 @@ export async function addReply(req, res) {
       return res.status(400).json({ error: 'Invalid comment ID format' });
     }
 
-    const comment = await Comment.findByIdAndUpdate(commentId, {
-      $push: { replies: reply }
-    }, { new: true });
+    const comment = await Comment.findByIdAndUpdate(
+      commentId,
+      { $push: { replies: reply } },
+      { new: true }
+    );
 
     if (!comment) {
       return res.status(404).json({ error: 'Comment not found' });
