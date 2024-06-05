@@ -9,7 +9,9 @@ import ressourcesRoutes from "./routes/ressources.js";
 import schedulerRoutes from "./routes/scheduler.js";
 import bodyParser from "body-parser";
 import helmet from "helmet";
-import settingsRoutes from"./routes/userSettings.js";
+import settingsRoutes from "./routes/userSettings.js";
+import multer from "multer";
+import { register } from "./controllers/auth.js";
 
 dotenv.config();
 const app = express();
@@ -20,14 +22,29 @@ app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
+app.use(cors());
 
+// routes with files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public/assets");
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
+const upload = multer({ storage });
+app.post("/auth/register", upload.single("picture"), register);
+
+// routes
 app.use("/auth", authRoutes);
 app.use("/Forum", forumRoutes);
 app.use("/chatbot", chatbotRoutes);
 app.use("/Resources-tracker", ressourcesRoutes);
 app.use("/Farm-scheduler", schedulerRoutes);
 app.use("/settings", settingsRoutes);
-const PORT = process.env.PORT ;
+
+const PORT = process.env.PORT;
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
@@ -38,8 +55,3 @@ connectDB()
     console.error("Unable to start server:", err);
     process.exit(1);
   });
-
-
-  app.use(cors({
-    origin: 'http://localhost:3000' 
-  }));
