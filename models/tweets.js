@@ -1,4 +1,4 @@
-import  mongoose from 'mongoose';
+import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 import Comment from './comments.js'; // Import the Comment schema
@@ -10,7 +10,7 @@ const tweetSchema = new Schema({
     trim: true // Remove leading/trailing whitespace
   },
   comments: {
-    type: {type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }, // Array of Comment model references
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }], // Array of Comment model references
     default: []
   },
   owner: {
@@ -37,4 +37,4 @@ tweetSchema.pre('save', async function (next) {
   next();
 });
 
-export default  mongoose.model('Tweet', tweetSchema);
+export default mongoose.model('Tweet', tweetSchema);

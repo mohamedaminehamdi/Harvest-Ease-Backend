@@ -15,25 +15,31 @@ router.get('/users', async (req, res) => {
    
 });
 
+
 router.get('/users/:userId', async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      console.log('Received userId:', userId); // Log the received userId
-      // Validate userId
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: 'Invalid userId' });
-      }
-      const user = await User.findOne({ userId: userId }); // Use userId instead of id
-      console.log('User found:', user); // Log the user found
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      return res.status(200).json({name : user.name});
-    } catch (error) {
-      console.error('Error getting user by ID:', error);
-      res.status(500).json({ error: 'Internal server error' });
+  try {
+    const userId = req.params.userId;
+    console.log('Received userId:', userId); // Log the received userId
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
     }
-  });
+
+    // Find the user by userId
+    const user = await User.findById(userId); // Use findById to fetch the user by ObjectId
+    console.log('User found:', user); // Log the user found
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.status(200).json({ name: user.name });
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 // **Update User Credentials (Password Change)**
 
 router.put('/users/:userId', async (req, res) => {

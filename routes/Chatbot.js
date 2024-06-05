@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import cors from 'cors'
 import dotenv from 'dotenv'
 
-dotenv.config({ path: './.env.example' });
+dotenv.config({ path: '../.env' });
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEN_AI_KEY)
