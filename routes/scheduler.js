@@ -1,14 +1,14 @@
 // routes/scheduler.js
 import express from 'express';
-import { addEvent, getAllEvents, getEventById, updateEventById, deleteEventById , authenticateToken} from '../controllers/schedulerController.js';
+import { createEvent, getEvents, getEventById, updateEvent, deleteEvent } from '../controllers/schedulerController.js';
 
 const router = express.Router();
 
 
-router.post('/add-event', authenticateToken, addEvent);
-router.get('/events', authenticateToken, getAllEvents);
-router.get('/events/:id', authenticateToken, getEventById);
-router.put('/events/:id', authenticateToken, updateEventById);
-router.delete('/events/:id', authenticateToken, deleteEventById);
+router.post('/add-event', createEvent);
+router.get('/events', getEvents);
+router.get('/events/:id', getEventById);
+router.put('/events/:id', updateEvent);
+router.delete('/events/:id', deleteEvent);
 
 export default router;

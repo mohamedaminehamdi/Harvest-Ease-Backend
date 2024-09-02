@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import { createComment, addReply } from '../controllers/forum/commentscontroller.js';
-import { getAllComments, deleteTweet, updateTweet, createTweet ,getAllTweets,updateLikes } from "../controllers/forum/tweetsCont.js";
+import { deleteTweet, updateTweet, createTweet, likeTweet } from "../controllers/forum/tweetscont.js";
 import Comment from '../models/comments.js'
 import Tweet from "../models/tweets.js";
 import User from "../models/user.js"
@@ -15,10 +15,8 @@ router.get('/comments', async (req, res) => {
   }
 });
 //  Route to create a new tweet
-router.post('/tweets', async (req, res) => {
-  createTweet(req, res);
-});
-router.put('/tweets/:tweetId/likes', updateLikes);
+router.post('/tweets', createTweet);
+router.put('/tweets/:id/likes', likeTweet);
 
 router.get('/tweets', async (req, res) => {
   try {
@@ -40,13 +38,9 @@ router.get('/tweets', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-router.put('/tweets/:tweetId', async (req, res) => {
-  updateTweet(req, res);
-});
+router.put('/tweets/:id', updateTweet);
 
-router.delete('/tweets/:tweetId', async (req, res) => {
-  deleteTweet(req, res);
-});
+router.delete('/tweets/:id', deleteTweet);
 
 router.get('/tweets/:tweetId', async (req, res) => {
   const tweetId = req.params.tweetId;
@@ -65,11 +59,7 @@ router.get('/tweets/:tweetId', async (req, res) => {
   }
 });
 
-router.post('/tweets/:tweetId/comments', async (req, res) => {
-  createComment(req, res);
-});
-router.put('/comments/:commentId/replies', async (req, res) => {
-  addReply(req, res);
-});
+router.post('/tweets/:tweetId/comments', createComment);
+router.put('/comments/:commentId/replies', addReply);
 
 export default router;

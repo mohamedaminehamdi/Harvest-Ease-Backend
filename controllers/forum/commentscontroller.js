@@ -127,3 +127,34 @@ export const deleteComment = asyncHandler(async (req, res) => {
     message: "Comment deleted",
   });
 });
+
+export const addReply = asyncHandler(async (req, res) => {
+  const { commentId } = req.params;
+  const { reply } = req.body;
+
+  if (!reply || reply.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Reply is required",
+    });
+  }
+
+  const comment = await Comment.findByIdAndUpdate(
+    commentId,
+    { $push: { replies: reply } },
+    { new: true }
+  );
+
+  if (!comment) {
+    return res.status(404).json({
+      success: false,
+      message: "Comment not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Reply added",
+    data: comment,
+  });
+});
