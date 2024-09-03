@@ -5,7 +5,7 @@ import { asyncHandler } from '../../middlewares/errorHandler.js';
 export const createComment = asyncHandler(async (req, res) => {
   const tweetId = req.params.tweetId;
   const { content } = req.body;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   if (!content || content.trim().length === 0) {
     return res.status(400).json({
@@ -53,7 +53,7 @@ export const getCommentsByTweet = asyncHandler(async (req, res) => {
 export const updateComment = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   if (!content || content.trim().length === 0) {
     return res.status(400).json({
@@ -94,7 +94,7 @@ export const updateComment = asyncHandler(async (req, res) => {
 
 export const deleteComment = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   const comment = await Comment.findById(id);
 

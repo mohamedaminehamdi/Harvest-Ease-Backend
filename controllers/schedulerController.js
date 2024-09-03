@@ -4,7 +4,7 @@ import { asyncHandler } from '../middlewares/errorHandler.js';
 
 export const createEvent = asyncHandler(async (req, res) => {
   const { title, description, startDate, endDate, category, priority, notes } = req.body;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   // Validation
   if (!title || !startDate) {
@@ -75,7 +75,7 @@ export const createEvent = asyncHandler(async (req, res) => {
 });
 
 export const getEvents = asyncHandler(async (req, res) => {
-  const userId = req.user?._id || req.query.userId;
+  const userId = req.user._id;
   const { startDate, endDate, category } = req.query;
 
   let query = { userId };
@@ -99,8 +99,26 @@ export const getEvents = asyncHandler(async (req, res) => {
 
 export const updateEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const updates = req.body;
-  const userId = req.user?._id || req.body.userId;
+  // Never let the body reassign ownership
+  const { userId: _, ...updates } = req.body;
+  const userId = req.user._id;
+
+  const event = await Event.findById(id);
+
+  if (!event) {
+    return res.status(404).json({
+      success: false,
+      message: "Event not found",
+    });
+  }
+
+  // Verify user owns the event
+  if (event.userId.toString() !== userId.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: "Not authorized to update this event",
+    });
+  }
 
   // Validate category if provided
   if (updates.category) {
@@ -126,7 +144,6 @@ export const updateEvent = asyncHandler(async (req, res) => {
 
   // Validate dates if provided
   if (updates.startDate || updates.endDate) {
-    const event = await Event.findById(id);
     const start = updates.startDate ? moment(updates.startDate) : moment(event.startDate);
     const end = updates.endDate ? moment(updates.endDate) : moment(event.endDate);
 
@@ -145,23 +162,6 @@ export const updateEvent = asyncHandler(async (req, res) => {
     }
   }
 
-  const event = await Event.findById(id);
-
-  if (!event) {
-    return res.status(404).json({
-      success: false,
-      message: "Event not found",
-    });
-  }
-
-  // Verify user owns the event
-  if (event.userId.toString() !== userId.toString()) {
-    return res.status(403).json({
-      success: false,
-      message: "Not authorized to update this event",
-    });
-  }
-
   const updatedEvent = await Event.findByIdAndUpdate(
     id,
     updates,
@@ -177,7 +177,7 @@ export const updateEvent = asyncHandler(async (req, res) => {
 
 export const deleteEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   const event = await Event.findById(id);
 
@@ -205,7 +205,7 @@ export const deleteEvent = asyncHandler(async (req, res) => {
 });
 
 export const getEventsByDate = asyncHandler(async (req, res) => {
-  const userId = req.user?._id || req.query.userId;
+  const userId = req.user._id;
   const { date } = req.query;
 
   if (!date) {

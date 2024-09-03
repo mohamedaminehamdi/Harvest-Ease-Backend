@@ -3,12 +3,12 @@ import { asyncHandler } from "../middlewares/errorHandler.js";
 import bcrypt from "bcryptjs";
 
 export const updateUserProfile = asyncHandler(async (req, res) => {
-  const userId = req.user?._id;
+  const userId = req.user._id;
   const targetUserId = req.params.userId || userId;
   const updates = req.body;
 
   // Verify user can only update their own profile
-  if (userId && userId.toString() !== targetUserId.toString()) {
+  if (userId.toString() !== targetUserId.toString()) {
     return res.status(403).json({
       success: false,
       message: "Not authorized to update this profile",
@@ -56,7 +56,7 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
 });
 
 export const getUserProfile = asyncHandler(async (req, res) => {
-  const userId = req.user?._id || req.params.userId;
+  const userId = req.user._id;
 
   const user = await User.findById(userId).select("-password");
 
@@ -75,7 +75,7 @@ export const getUserProfile = asyncHandler(async (req, res) => {
 });
 
 export const changePassword = asyncHandler(async (req, res) => {
-  const userId = req.user?._id;
+  const userId = req.user._id;
   const { oldPassword, newPassword } = req.body;
 
   if (!oldPassword || !newPassword) {

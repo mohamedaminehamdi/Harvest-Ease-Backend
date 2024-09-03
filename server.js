@@ -14,6 +14,7 @@ import helmet from "helmet";
 import settingsRoutes from "./routes/userSettings.js";
 import multer from "multer";
 import { register } from "./controllers/auth.js";
+import { requireAuth } from "./middlewares/auth.js";
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -40,11 +41,11 @@ app.post("/auth/register", upload.single("picture"), register);
 
 // routes
 app.use("/auth", authRoutes);
-app.use("/Forum", forumRoutes);
-app.use("/chatbot", chatbotRoutes);
-app.use("/Resources-tracker", ressourcesRoutes);
-app.use("/Farm-scheduler", schedulerRoutes);
-app.use("/settings", settingsRoutes);
+app.use("/Forum", requireAuth, forumRoutes);
+app.use("/chatbot", requireAuth, chatbotRoutes);
+app.use("/Resources-tracker", requireAuth, ressourcesRoutes);
+app.use("/Farm-scheduler", requireAuth, schedulerRoutes);
+app.use("/settings", requireAuth, settingsRoutes);
 
 const PORT = process.env.PORT;
 connectDB()

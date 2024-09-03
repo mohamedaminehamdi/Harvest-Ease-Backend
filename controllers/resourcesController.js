@@ -3,7 +3,7 @@ import { asyncHandler } from "../middlewares/errorHandler.js";
 
 export const addResourceUsage = asyncHandler(async (req, res) => {
   const { resourceName, quantity, unit, cost, action, notes } = req.body;
-  const userId = req.user._id || req.body.userId;
+  const userId = req.user._id;
 
   let errors = [];
   if (!resourceName || !["water", "fertilizer", "pesticide", "seed", "equipment", "labor"].includes(resourceName)) {
@@ -36,7 +36,7 @@ export const addResourceUsage = asyncHandler(async (req, res) => {
 });
 
 export const getResourceUsage = asyncHandler(async (req, res) => {
-  const userId = req.user._id || req.query.userId;
+  const userId = req.user._id;
   const { startDate, endDate, resourceName } = req.query;
 
   let query = { userId };
@@ -62,8 +62,9 @@ export const getResourceUsage = asyncHandler(async (req, res) => {
 
 export const updateResourceUsage = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const updates = req.body;
-  const userId = req.user._id || req.body.userId;
+  // Never let the body reassign ownership
+  const { userId: _, ...updates } = req.body;
+  const userId = req.user._id;
 
   // Validate provided fields
   if (updates.resourceName && !["water", "fertilizer", "pesticide", "seed", "equipment", "labor"].includes(updates.resourceName)) {
@@ -105,7 +106,7 @@ export const updateResourceUsage = asyncHandler(async (req, res) => {
 
 export const deleteResourceUsage = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user._id || req.body.userId;
+  const userId = req.user._id;
 
   const usage = await ResourceUsage.findById(id);
 

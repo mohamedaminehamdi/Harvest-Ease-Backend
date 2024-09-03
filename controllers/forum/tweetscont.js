@@ -3,7 +3,7 @@ import { asyncHandler } from '../../middlewares/errorHandler.js';
 
 export const createTweet = asyncHandler(async (req, res) => {
   const { content, image } = req.body;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   if (!content || content.trim().length === 0) {
     return res.status(400).json({
@@ -65,7 +65,7 @@ export const getTweetById = asyncHandler(async (req, res) => {
 export const updateTweet = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { content, image } = req.body;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   if (!content || content.trim().length === 0) {
     return res.status(400).json({
@@ -106,7 +106,7 @@ export const updateTweet = asyncHandler(async (req, res) => {
 
 export const deleteTweet = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   const tweet = await Tweet.findById(id);
 
@@ -135,7 +135,7 @@ export const deleteTweet = asyncHandler(async (req, res) => {
 
 export const likeTweet = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user?._id || req.body.userId;
+  const userId = req.user._id;
 
   const tweet = await Tweet.findById(id);
 
