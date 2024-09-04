@@ -94,17 +94,11 @@ export const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({
+    // password is select:false on the schema, so ask for it explicitly
+    const user = await User.findOne({ email }).select("+password");
+    // Same response for unknown email and wrong password (no user enumeration)
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
@@ -124,62 +118,6 @@ export const login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Login failed",
-    });
-  }
-};
-
-// Sync user with Clerk (for frontend auth integration)
-export const syncUser = async (req, res) => {
-  const { email, name } = req.body;
-
-  try {
-    if (!email || !name) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and name are required",
-      });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email format",
-      });
-    }
-
-    let user = await User.findOne({ email });
-
-    if (!user) {
-      // Create new user synced from Clerk
-      // Generate a random hash for Clerk-synced users (no password login)
-      const salt = await bcrypt.genSalt(10);
-      const randomHash = await bcrypt.hash(Math.random().toString(36), salt);
-
-      const newUser = new User({
-        email,
-        name,
-        password: randomHash, // Random hash prevents password login
-        role: "farmer",
-      });
-      user = await newUser.save();
-    }
-
-    const token = generateToken(user._id);
-    const formattedUser = formatUserResponse(user);
-
-    res.status(200).json({
-      success: true,
-      message: "User synced successfully",
-      user: formattedUser,
-      token,
-    });
-  } catch (error) {
-    console.error("Sync error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Sync failed",
     });
   }
 };

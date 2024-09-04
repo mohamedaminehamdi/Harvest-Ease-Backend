@@ -49,29 +49,6 @@ export const validateLogin = (req, res, next) => {
   next();
 };
 
-export const validateSyncUser = (req, res, next) => {
-  const { email, name } = req.body;
-
-  const errors = [];
-
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Valid email is required');
-  }
-  if (!name || name.trim().length < 2) {
-    errors.push('Name must be at least 2 characters');
-  }
-
-  if (errors.length > 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors,
-    });
-  }
-
-  next();
-};
-
 export const validateUpdateProfile = (req, res, next) => {
   const { name, phone, farmName, bio, website } = req.body;
 

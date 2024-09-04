@@ -4,7 +4,7 @@
  * Backend URL: http://localhost:5000
  * Frontend URL: http://localhost:3000
  * 
- * Authentication: Dual-token system (Clerk + JWT)
+ * Authentication: JWT (send `Authorization: Bearer <token>` on all non-/auth routes)
  * Response Format: { success, message, user/data, token?, error? }
  */
 
@@ -18,11 +18,6 @@ Response: { success: boolean, message: string, user: User, token: string }
 ## POST /auth/login
 Authenticate user with credentials
 Body: { email, password }
-Response: { success: boolean, message: string, user: User, token: string }
-
-## POST /auth/sync-user
-Sync Clerk user with backend database
-Body: { email, name }
 Response: { success: boolean, message: string, user: User, token: string }
 
 # User APIs
