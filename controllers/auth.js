@@ -17,7 +17,9 @@ const formatUserResponse = (user) => {
 };
 
 export const register = async (req, res) => {
-  const { name, email, password, picturePath } = req.body;
+  const { name, email, password } = req.body;
+  // Uploaded files get a generated name, so point picturePath at it
+  const picturePath = req.file ? req.file.filename : req.body.picturePath;
   try {
     // Validate required fields
     if (!name || !email || !password) {

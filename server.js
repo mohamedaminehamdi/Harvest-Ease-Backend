@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+import fs from "fs";
+import { randomUUID } from "crypto";
 import cors from "cors";
 import connectDB from "./Db/dbconnection.js";
 import authRoutes from "./routes/auth.js";
@@ -15,6 +17,7 @@ import settingsRoutes from "./routes/userSettings.js";
 import multer from "multer";
 import { register } from "./controllers/auth.js";
 import { requireAuth } from "./middlewares/auth.js";
+import { validateRegister } from "./middlewares/validators.js";
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -25,19 +28,30 @@ app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
-app.use("/assets", express.static(path.join(__dirname, "public/assets")));
+const assetsDir = path.join(__dirname, "public/assets");
+fs.mkdirSync(assetsDir, { recursive: true });
+app.use("/assets", express.static(assetsDir));
 
 // routes with files
+// Images only, named by us: uploads can't overwrite each other or be served as HTML/JS
+const imageTypes = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif" };
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "public/assets");
-  },
+  destination: assetsDir,
   filename: (req, file, cb) => {
-    cb(null, file.originalname);
+    cb(null, randomUUID() + imageTypes[file.mimetype]);
   },
 });
-const upload = multer({ storage });
-app.post("/auth/register", upload.single("picture"), register);
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (imageTypes[file.mimetype]) return cb(null, true);
+    const err = new Error("Picture must be a PNG, JPEG, WebP or GIF image");
+    err.status = 400;
+    cb(err);
+  },
+});
+app.post("/auth/register", upload.single("picture"), validateRegister, register);
 
 // routes
 app.use("/auth", authRoutes);
