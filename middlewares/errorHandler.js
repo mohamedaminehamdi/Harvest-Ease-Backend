@@ -44,10 +44,19 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Default error response
-  res.status(err.status || 500).json({
+  // Handle upload errors (e.g. file too large)
+  if (err.name === 'MulterError') {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  // Default error response: never expose internal messages on 5xx
+  const status = err.status || 500;
+  res.status(status).json({
     success: false,
-    message: err.message || 'Internal server error',
+    message: status < 500 && err.message ? err.message : 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
