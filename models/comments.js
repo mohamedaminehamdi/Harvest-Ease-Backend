@@ -26,9 +26,8 @@ const commentSchema = new Schema({
   }
 });
 
-commentSchema.pre('save', function(next) {
+commentSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('Comment', commentSchema);

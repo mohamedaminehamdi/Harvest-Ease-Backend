@@ -86,9 +86,8 @@ userSchema.virtual("accountAge").get(function () {
   return Math.floor((Date.now() - this.createdAt) / (1000 * 60 * 60 * 24));
 });
 
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const User = mongoose.model("User", userSchema);

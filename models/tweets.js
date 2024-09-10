@@ -32,9 +32,8 @@ const tweetSchema = new Schema({
   },
 });
 
-tweetSchema.pre('save', async function (next) {
+tweetSchema.pre('save', function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('Tweet', tweetSchema);

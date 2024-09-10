@@ -26,6 +26,11 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
+// Express 5 leaves req.body undefined when there is no body; handlers expect an object
+app.use((req, res, next) => {
+  req.body ??= {};
+  next();
+});
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 const assetsDir = path.join(__dirname, "public/assets");
