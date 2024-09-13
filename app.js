@@ -1,5 +1,4 @@
 import express from "express";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
@@ -18,7 +17,6 @@ import { requireAuth } from "./middlewares/auth.js";
 import { validateRegister } from "./middlewares/validators.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
-dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
