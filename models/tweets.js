@@ -1,39 +1,27 @@
 import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
-import Comment from './comments.js'; // Import the Comment schema
-
-const tweetSchema = new Schema({
-  content: {
-    type: String,
-    required: true,
-    trim: true // Remove leading/trailing whitespace
+const tweetSchema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User', // Author of the tweet
+      required: true,
+      index: true,
+    },
+    content: {
+      type: String,
+      required: true,
+      trim: true, // Remove leading/trailing whitespace
+      maxlength: 2000,
+    },
+    image: {
+      type: String,
+    },
+    likes: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Users who liked the tweet
+    comments: [{ type: Schema.Types.ObjectId, ref: 'Comment' }],
   },
-  comments: {
-    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }], // Array of Comment model references
-    default: []
-  },
-  owner: {
-    type: Schema.Types.ObjectId,
-    ref: 'User', // Reference the User model for the content owner
-    required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now // Set timestamp on creation
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now // Set timestamp on update
-  },
-  likes: {
-    type: Number,
-    default: 0 // Initialize with 0 likes
-  },
-});
-
-tweetSchema.pre('save', function () {
-  this.updatedAt = Date.now();
-});
+  { timestamps: true }
+);
 
 export default mongoose.model('Tweet', tweetSchema);

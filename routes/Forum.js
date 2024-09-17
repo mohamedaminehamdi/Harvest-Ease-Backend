@@ -1,13 +1,11 @@
 import express from "express";
 const router = express.Router();
 import { createComment, addReply } from '../controllers/forum/commentscontroller.js';
-import { deleteTweet, updateTweet, createTweet, likeTweet } from "../controllers/forum/tweetscont.js";
+import { deleteTweet, updateTweet, createTweet, likeTweet, getAllTweets, getTweetById } from "../controllers/forum/tweetscont.js";
 import Comment from '../models/comments.js'
-import Tweet from "../models/tweets.js";
-import User from "../models/user.js"
 router.get('/comments', async (req, res) => {
   try {
-    const comments = await Comment.find(); 
+    const comments = await Comment.find();
     res.json(comments);
   } catch (err) {
     console.error(err);
@@ -18,46 +16,12 @@ router.get('/comments', async (req, res) => {
 router.post('/tweets', createTweet);
 router.put('/tweets/:id/likes', likeTweet);
 
-router.get('/tweets', async (req, res) => {
-  try {
-    // Fetch tweets and populate the owner's name from the User model
-    const tweets = await Tweet.find().populate('owner', 'name');
-    // Prepare the response data
-    const response = tweets.map(tweet => ({
-      content: tweet.content,
-      ownerName: tweet.owner.name,
-      likes: tweet.likes,
-      comments: tweet.comments,
-      createdAt: tweet.createdAt,
-      updatedAt: tweet.updatedAt,
-    }));
-
-    res.status(200).json(response);
-  } catch (error) {
-    console.error('Error fetching tweets:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.get('/tweets', getAllTweets);
 router.put('/tweets/:id', updateTweet);
 
 router.delete('/tweets/:id', deleteTweet);
 
-router.get('/tweets/:tweetId', async (req, res) => {
-  const tweetId = req.params.tweetId;
-
-  try {
-    const tweet = await Tweet.findById(tweetId).populate('comments'); // Populate comments
-
-    if (!tweet) {
-      return res.status(404).json({ error: 'Tweet not found' });
-    }
-
-    res.json(tweet); 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.get('/tweets/:id', getTweetById);
 
 router.post('/tweets/:tweetId/comments', createComment);
 router.put('/comments/:commentId/replies', addReply);
