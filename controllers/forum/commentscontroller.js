@@ -3,7 +3,8 @@ import Tweet from '../../models/tweets.js';
 import { asyncHandler } from '../../middlewares/errorHandler.js';
 
 export const createComment = asyncHandler(async (req, res) => {
-  const tweetId = req.params.tweetId;
+  // POST /tweets/:tweetId/comments or POST /comments with { tweetId }
+  const tweetId = req.params.tweetId || req.body.tweetId;
   const { content } = req.body;
   const userId = req.user._id;
 
@@ -14,20 +15,19 @@ export const createComment = asyncHandler(async (req, res) => {
     });
   }
 
-  const newComment = new Comment({ 
-    content, 
-    tweetId, 
-    userId,
-  });
-  
-  const savedComment = await newComment.save();
+  const tweet = await Tweet.findById(tweetId);
+  if (!tweet) {
+    return res.status(404).json({
+      success: false,
+      message: "Tweet not found",
+    });
+  }
 
-  // Update tweet's comment count
-  await Tweet.findByIdAndUpdate(
-    tweetId,
-    { $push: { comments: savedComment._id } },
-    { new: true }
-  );
+  const savedComment = await new Comment({ content, tweetId, userId }).save();
+
+  // Keep the tweet's comment list in sync
+  tweet.comments.push(savedComment._id);
+  await tweet.save();
 
   res.status(201).json({
     success: true,

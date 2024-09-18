@@ -41,3 +41,29 @@ test("comments are attached to their tweet", async () => {
   const tweet = await api(`/forum/tweets/${tweetId}`, { token: alice.token });
   assert.equal(tweet.body.data.comments[0].content, "Nice");
 });
+
+test("comment API: list, create via body, author-only edit and delete", async () => {
+  const alice = await newUser();
+  const bob = await newUser();
+  const { body } = await api("/forum/tweets", { method: "POST", token: alice.token, body: { content: "Tomatoes or peppers?" } });
+  const tweetId = body.data._id;
+
+  assert.equal((await api(`/forum/tweets/${tweetId}/like`, { method: "POST", token: bob.token })).body.data.likes.length, 1);
+
+  const created = await api("/forum/comments", { method: "POST", token: bob.token, body: { tweetId, content: "Peppers" } });
+  assert.equal(created.status, 201);
+  const commentId = created.body.data._id;
+
+  const missing = await api("/forum/comments", { method: "POST", token: bob.token, body: { tweetId: "000000000000000000000000", content: "?" } });
+  assert.equal(missing.status, 404);
+
+  const list = await api(`/forum/tweets/${tweetId}/comments`, { token: alice.token });
+  assert.equal(list.body.data.length, 1);
+  assert.equal(list.body.data[0].userId._id, bob.id);
+
+  assert.equal((await api(`/forum/comments/${commentId}`, { method: "PUT", token: alice.token, body: { content: "x" } })).status, 403);
+  assert.equal((await api(`/forum/comments/${commentId}`, { method: "PUT", token: bob.token, body: { content: "Peppers!" } })).body.data.content, "Peppers!");
+  assert.equal((await api(`/forum/comments/${commentId}`, { method: "DELETE", token: alice.token })).status, 403);
+  assert.equal((await api(`/forum/comments/${commentId}`, { method: "DELETE", token: bob.token })).status, 200);
+  assert.equal((await api(`/forum/tweets/${tweetId}`, { token: alice.token })).body.data.comments.length, 0);
+});
