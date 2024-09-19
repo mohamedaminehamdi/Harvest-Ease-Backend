@@ -60,7 +60,7 @@ app.use("/auth", authRoutes);
 app.use("/Forum", requireAuth, forumRoutes);
 app.use("/chatbot", requireAuth, chatbotRoutes);
 app.use("/Resources-tracker", requireAuth, ressourcesRoutes);
-app.use("/Farm-scheduler", requireAuth, schedulerRoutes);
+app.use(["/scheduler", "/Farm-scheduler"], requireAuth, schedulerRoutes);
 app.use("/settings", requireAuth, settingsRoutes);
 app.use(errorHandler);
 

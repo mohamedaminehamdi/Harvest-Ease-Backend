@@ -1,4 +1,4 @@
-import Event from '../models/event.js';
+import Event, { EVENT_CATEGORIES, EVENT_PRIORITIES } from '../models/event.js';
 import moment from 'moment';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 
@@ -21,16 +21,14 @@ export const createEvent = asyncHandler(async (req, res) => {
     });
   }
 
-  const validCategories = ['general', 'planting', 'watering', 'harvesting', 'maintenance'];
-  if (category && !validCategories.includes(category)) {
+  if (category && !EVENT_CATEGORIES.includes(category)) {
     return res.status(400).json({
       success: false,
       message: "Invalid category",
     });
   }
 
-  const validPriorities = ['low', 'medium', 'high'];
-  if (priority && !validPriorities.includes(priority)) {
+  if (priority && !EVENT_PRIORITIES.includes(priority)) {
     return res.status(400).json({
       success: false,
       message: "Invalid priority",
@@ -122,8 +120,7 @@ export const updateEvent = asyncHandler(async (req, res) => {
 
   // Validate category if provided
   if (updates.category) {
-    const validCategories = ['general', 'planting', 'watering', 'harvesting', 'maintenance'];
-    if (!validCategories.includes(updates.category)) {
+    if (!EVENT_CATEGORIES.includes(updates.category)) {
       return res.status(400).json({
         success: false,
         message: "Invalid category",
@@ -133,8 +130,7 @@ export const updateEvent = asyncHandler(async (req, res) => {
 
   // Validate priority if provided
   if (updates.priority) {
-    const validPriorities = ['low', 'medium', 'high'];
-    if (!validPriorities.includes(updates.priority)) {
+    if (!EVENT_PRIORITIES.includes(updates.priority)) {
       return res.status(400).json({
         success: false,
         message: "Invalid priority",
