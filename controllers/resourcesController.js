@@ -1,6 +1,8 @@
 import ResourceUsage from "../models/resourceUsage.js";
 import { asyncHandler } from "../middlewares/errorHandler.js";
 
+const isNonNegativeNumber = (value) => typeof value === "number" && value >= 0;
+
 export const addResourceUsage = asyncHandler(async (req, res) => {
   const { resourceName, quantity, unit, cost, action, notes } = req.body;
   const userId = req.user._id;
@@ -9,9 +11,9 @@ export const addResourceUsage = asyncHandler(async (req, res) => {
   if (!resourceName || !["water", "fertilizer", "pesticide", "seed", "equipment", "labor"].includes(resourceName)) {
     errors.push("Valid resource name required");
   }
-  if (!quantity || quantity < 0) errors.push("Valid quantity required");
+  if (!isNonNegativeNumber(quantity)) errors.push("Valid quantity required");
   if (!unit || !["liters", "kg", "units", "hours"].includes(unit)) errors.push("Valid unit required");
-  if (cost === undefined || cost < 0) errors.push("Valid cost required");
+  if (!isNonNegativeNumber(cost)) errors.push("Valid cost required");
 
   if (errors.length > 0) {
     return res.status(400).json({ success: false, message: "Validation failed", errors });
@@ -73,11 +75,11 @@ export const updateResourceUsage = asyncHandler(async (req, res) => {
   if (updates.unit && !["liters", "kg", "units", "hours"].includes(updates.unit)) {
     return res.status(400).json({ success: false, message: "Invalid unit" });
   }
-  if (updates.quantity !== undefined && updates.quantity < 0) {
-    return res.status(400).json({ success: false, message: "Quantity cannot be negative" });
+  if (updates.quantity !== undefined && !isNonNegativeNumber(updates.quantity)) {
+    return res.status(400).json({ success: false, message: "Quantity must be a non-negative number" });
   }
-  if (updates.cost !== undefined && updates.cost < 0) {
-    return res.status(400).json({ success: false, message: "Cost cannot be negative" });
+  if (updates.cost !== undefined && !isNonNegativeNumber(updates.cost)) {
+    return res.status(400).json({ success: false, message: "Cost must be a non-negative number" });
   }
 
   const usage = await ResourceUsage.findById(id);

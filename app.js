@@ -59,7 +59,7 @@ app.post("/auth/register", upload.single("picture"), validateRegister, register)
 app.use("/auth", authRoutes);
 app.use("/Forum", requireAuth, forumRoutes);
 app.use("/chatbot", requireAuth, chatbotRoutes);
-app.use("/Resources-tracker", requireAuth, ressourcesRoutes);
+app.use(["/resources", "/Resources-tracker"], requireAuth, ressourcesRoutes);
 app.use(["/scheduler", "/Farm-scheduler"], requireAuth, schedulerRoutes);
 app.use("/settings", requireAuth, settingsRoutes);
 app.use(errorHandler);
