@@ -3,10 +3,10 @@ import { asyncHandler } from "../middlewares/errorHandler.js";
 export const analyzePlantHealth = asyncHandler(async (req, res) => {
   const { imageUrl, plantType } = req.body;
   
-  if (!imageUrl) {
+  if (typeof imageUrl !== "string" || !/^https?:\/\/\S+$/.test(imageUrl)) {
     return res.status(400).json({
       success: false,
-      message: "Image URL is required",
+      message: "A valid http(s) image URL is required",
     });
   }
 
@@ -52,7 +52,8 @@ export const getPlantInfo = asyncHandler(async (req, res) => {
     },
   };
 
-  const info = plantDatabase[plantType.toLowerCase()] || {
+  const key = plantType.toLowerCase();
+  const info = (Object.hasOwn(plantDatabase, key) && plantDatabase[key]) || {
     name: plantType,
     note: "Plant database entry for this species is not available",
   };
