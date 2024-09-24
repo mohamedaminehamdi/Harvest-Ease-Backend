@@ -12,6 +12,7 @@ import schedulerRoutes from "./routes/scheduler.js";
 import helmet from "helmet";
 import settingsRoutes from "./routes/userSettings.js";
 import healthRoutes from "./routes/health.js";
+import userRoutes from "./routes/users.js";
 import multer from "multer";
 import { register } from "./controllers/auth.js";
 import { requireAuth } from "./middlewares/auth.js";
@@ -64,6 +65,7 @@ app.use(["/resources", "/Resources-tracker"], requireAuth, ressourcesRoutes);
 app.use(["/scheduler", "/Farm-scheduler"], requireAuth, schedulerRoutes);
 app.use("/settings", requireAuth, settingsRoutes);
 app.use("/health", requireAuth, healthRoutes);
+app.use("/users", requireAuth, userRoutes);
 app.use(errorHandler);
 
 export default app;

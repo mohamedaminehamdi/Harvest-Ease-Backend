@@ -55,10 +55,14 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
-export const getUserProfile = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
+// Fields anyone signed in may see on another user's profile
+const PUBLIC_PROFILE_FIELDS = "name picturePath farmName location bio website createdAt";
 
-  const user = await User.findById(userId).select("-password");
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.userId || req.user._id;
+  const isSelf = String(targetUserId) === String(req.user._id);
+
+  const user = await User.findById(targetUserId).select(isSelf ? "-password" : PUBLIC_PROFILE_FIELDS);
 
   if (!user) {
     return res.status(404).json({
