@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 
@@ -121,5 +122,70 @@ export const login = async (req, res) => {
       success: false,
       message: "Login failed",
     });
+  }
+};
+
+// Look up the Clerk user behind a verified session so the email comes from Clerk, not the request body
+const fetchClerkUser = async (clerkUserId) => {
+  const response = await fetch(`https://api.clerk.com/v1/users/${encodeURIComponent(clerkUserId)}`, {
+    headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
+  });
+  if (!response.ok) throw new Error(`Clerk API responded ${response.status}`);
+  return response.json();
+};
+
+// Exchange a Clerk session token for a backend token, creating the user on first sign-in
+export const syncUser = async (req, res) => {
+  const { CLERK_JWT_KEY, CLERK_SECRET_KEY } = process.env;
+  if (!CLERK_JWT_KEY || !CLERK_SECRET_KEY) {
+    return res.status(503).json({ success: false, message: "Clerk sign-in is not configured" });
+  }
+
+  const [scheme, clerkToken] = (req.header("Authorization") || "").split(" ");
+  let claims;
+  try {
+    if (scheme !== "Bearer" || !clerkToken) throw new Error("missing token");
+    // .env files often store the PEM on one line with literal \n
+    claims = jwt.verify(clerkToken, CLERK_JWT_KEY.replace(/\\n/g, "\n"), { algorithms: ["RS256"] });
+  } catch {
+    return res.status(401).json({ success: false, message: "Invalid Clerk session" });
+  }
+
+  // Clerk recommends rejecting sessions issued for other frontends
+  const allowedOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+  if (claims.azp && claims.azp !== allowedOrigin) {
+    return res.status(401).json({ success: false, message: "Invalid Clerk session" });
+  }
+
+  try {
+    const clerkUser = await fetchClerkUser(claims.sub);
+    const primary = clerkUser.email_addresses?.find((e) => e.id === clerkUser.primary_email_address_id);
+    if (primary?.verification?.status !== "verified") {
+      return res.status(403).json({ success: false, message: "Verify your email address first" });
+    }
+    const email = primary.email_address.toLowerCase();
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      const clerkName = [clerkUser.first_name, clerkUser.last_name].filter(Boolean).join(" ");
+      const name = [req.body.name, clerkName].find((n) => typeof n === "string" && n.trim().length >= 2) || "Farmer";
+      user = await new User({
+        name: name.trim().slice(0, 50),
+        email,
+        // Unguessable password: Clerk users sign in through Clerk, not /auth/login
+        password: await bcrypt.hash(randomBytes(32).toString("hex"), 10),
+        role: "farmer",
+      }).save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User synced successfully",
+      user: formatUserResponse(user),
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error("Sync error:", error);
+    res.status(502).json({ success: false, message: "Sync failed" });
   }
 };
