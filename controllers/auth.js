@@ -17,7 +17,7 @@ const formatUserResponse = (user) => {
   return userObj;
 };
 
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   const { name, email, password } = req.body;
   // Uploaded files get a generated name, so point picturePath at it
   const picturePath = req.file ? req.file.filename : req.body.picturePath;
@@ -77,15 +77,12 @@ export const register = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Registration failed",
-    });
+    // errorHandler turns validation errors into 400 and duplicate emails into 409
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   const email = req.body.values?.email || req.body.email;
   const password = req.body.values?.password || req.body.password;
 
@@ -117,11 +114,7 @@ export const login = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Login failed",
-    });
+    next(error);
   }
 };
 

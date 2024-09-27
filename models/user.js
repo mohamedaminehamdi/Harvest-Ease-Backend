@@ -14,10 +14,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Email is required"],
       unique: true,
       lowercase: true,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please provide a valid email",
-      ],
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please provide a valid email"],
     },
     password: {
       type: String,
@@ -56,38 +53,21 @@ const userSchema = new mongoose.Schema(
     },
     website: {
       type: String,
-      match: [
-        /^(https?:\/\/)?(([da-z\.-]+)\.([a-z\.]{2,6}))([\/\w \.-]*)*\/?$/,
-        "Please provide a valid website URL",
-      ],
+      match: [/^https?:\/\/\S+$/, "Please provide a valid website URL"],
     },
     isVerified: {
       type: Boolean,
       default: false,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
   },
   { timestamps: true }
 );
 
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 
 userSchema.virtual("accountAge").get(function () {
   return Math.floor((Date.now() - this.createdAt) / (1000 * 60 * 60 * 24));
-});
-
-userSchema.pre("save", function () {
-  this.updatedAt = new Date();
 });
 
 const User = mongoose.model("User", userSchema);

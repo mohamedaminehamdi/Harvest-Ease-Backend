@@ -28,3 +28,17 @@ test("profiles: full for yourself, public fields for others, owner-only updates"
   assert.equal(changed.status, 200);
   assert.equal((await api("/auth/login", { method: "POST", body: { email: alice.email, password: "secret2" } })).status, 200);
 });
+
+test("emails with long TLDs register and log in case-insensitively", async () => {
+  const email = `grower${Date.now()}@farm.agency`;
+  const res = await api("/auth/register", { method: "POST", body: { name: "Grower", email, password: "secret1" } });
+  assert.equal(res.status, 201);
+  assert.equal((await api("/auth/login", { method: "POST", body: { email: email.toUpperCase(), password: "secret1" } })).status, 200);
+  assert.equal((await api("/auth/register", { method: "POST", body: { name: "Again", email: email.toUpperCase(), password: "secret1" } })).status, 400);
+});
+
+test("schema validation errors are 400s, not 500s", async () => {
+  const res = await api("/auth/register", { method: "POST", body: { name: "N".repeat(51), email: `long${Date.now()}@example.com`, password: "secret1" } });
+  assert.equal(res.status, 400);
+  assert.match(res.body.errors[0], /50 characters/);
+});
