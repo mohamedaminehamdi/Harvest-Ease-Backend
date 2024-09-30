@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 process.env.JWT_SECRET ??= "test-secret";
+// Every test request comes from 127.0.0.1, so lift the auth limit
+process.env.AUTH_RATE_LIMIT ??= "10000";
 
 let mongo, server, base;
 

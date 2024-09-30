@@ -18,10 +18,13 @@ import { register } from "./controllers/auth.js";
 import { requireAuth } from "./middlewares/auth.js";
 import { validateRegister } from "./middlewares/validators.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { rateLimit } from "./middlewares/rateLimit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+// Behind a reverse proxy, set TRUST_PROXY to the number of proxies so req.ip is the client's address
+if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY));
 app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
@@ -55,6 +58,8 @@ const upload = multer({
     cb(err);
   },
 });
+// Slow down password guessing and account spam
+app.use("/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: Number(process.env.AUTH_RATE_LIMIT) || 20 }));
 app.post("/auth/register", upload.single("picture"), validateRegister, register);
 
 // routes
