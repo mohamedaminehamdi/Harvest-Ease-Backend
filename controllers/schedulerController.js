@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Event, { EVENT_CATEGORIES, EVENT_PRIORITIES } from '../models/event.js';
 import moment from 'moment';
 import { asyncHandler } from '../middlewares/errorHandler.js';
@@ -79,9 +80,10 @@ export const getEvents = asyncHandler(async (req, res) => {
   let query = { userId };
 
   if (startDate || endDate) {
-    query.startDate = {};
-    if (startDate) query.startDate.$gte = new Date(startDate);
-    if (endDate) query.startDate.$lte = new Date(endDate);
+    const range = {};
+    if (startDate) range.$gte = new Date(startDate);
+    if (endDate) range.$lte = new Date(endDate);
+    query.startDate = mongoose.trusted(range); // our operators, exempt from sanitizeFilter
   }
 
   if (category) query.category = category;
@@ -216,7 +218,7 @@ export const getEventsByDate = asyncHandler(async (req, res) => {
 
   const events = await Event.find({
     userId,
-    startDate: { $gte: startOfDay, $lte: endOfDay },
+    startDate: mongoose.trusted({ $gte: startOfDay, $lte: endOfDay }),
   }).sort({ startDate: 1 });
 
   res.status(200).json({

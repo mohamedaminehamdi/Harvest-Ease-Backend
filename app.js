@@ -10,6 +10,7 @@ import chatbotRoutes from "./routes/Chatbot.js";
 import ressourcesRoutes from "./routes/ressources.js";
 import schedulerRoutes from "./routes/scheduler.js";
 import helmet from "helmet";
+import mongoose from "mongoose";
 import settingsRoutes from "./routes/userSettings.js";
 import healthRoutes from "./routes/health.js";
 import userRoutes from "./routes/users.js";
@@ -22,6 +23,10 @@ import { rateLimit } from "./middlewares/rateLimit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Treat user-supplied query values as literals: {"$ne": null} can't turn into an operator.
+// Our own operators must be wrapped in mongoose.trusted().
+mongoose.set("sanitizeFilter", true);
+
 const app = express();
 // Behind a reverse proxy, set TRUST_PROXY to the number of proxies so req.ip is the client's address
 if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY));

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import ResourceUsage from "../models/resourceUsage.js";
 import { asyncHandler } from "../middlewares/errorHandler.js";
 
@@ -44,9 +45,10 @@ export const getResourceUsage = asyncHandler(async (req, res) => {
   let query = { userId };
 
   if (startDate || endDate) {
-    query.date = {};
-    if (startDate) query.date.$gte = new Date(startDate);
-    if (endDate) query.date.$lte = new Date(endDate);
+    const range = {};
+    if (startDate) range.$gte = new Date(startDate);
+    if (endDate) range.$lte = new Date(endDate);
+    query.date = mongoose.trusted(range); // our operators, exempt from sanitizeFilter
   }
 
   if (resourceName) query.resourceName = resourceName;

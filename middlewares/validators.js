@@ -1,16 +1,17 @@
 // Request validation middleware
+const isString = (value) => typeof value === 'string';
 export const validateRegister = (req, res, next) => {
   const { name, email, password, picturePath } = req.body;
 
   const errors = [];
 
-  if (!name || name.trim().length < 2) {
+  if (!isString(name) || name.trim().length < 2) {
     errors.push('Name must be at least 2 characters');
   }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!isString(email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.push('Valid email is required');
   }
-  if (!password || password.length < 6) {
+  if (!isString(password) || password.length < 6) {
     errors.push('Password must be at least 6 characters');
   }
 
@@ -31,10 +32,10 @@ export const validateLogin = (req, res, next) => {
 
   const errors = [];
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!isString(email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.push('Valid email is required');
   }
-  if (!password) {
+  if (!isString(password) || !password) {
     errors.push('Password is required');
   }
 
@@ -53,6 +54,13 @@ export const validateUpdateProfile = (req, res, next) => {
   const { name, phone, farmName, bio, website } = req.body;
 
   const errors = [];
+
+  for (const [field, value] of Object.entries({ name, phone, farmName, bio, website })) {
+    if (value !== undefined && !isString(value)) errors.push(`${field} must be a string`);
+  }
+  if (errors.length > 0) {
+    return res.status(400).json({ success: false, message: 'Validation failed', errors });
+  }
 
   if (name && name.trim().length < 2) {
     errors.push('Name must be at least 2 characters');
