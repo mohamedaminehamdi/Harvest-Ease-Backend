@@ -30,14 +30,24 @@ export const createTweet = asyncHandler(async (req, res) => {
 });
 
 export const getAllTweets = asyncHandler(async (req, res) => {
-  const tweets = await Tweet.find()
-    .populate("userId", "name picturePath")
-    .sort({ createdAt: -1 });
+  // ?page=1&limit=20, newest first; limit capped so one request can't pull the whole forum
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
+  const [tweets, total] = await Promise.all([
+    Tweet.find()
+      .populate("userId", "name picturePath")
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Tweet.countDocuments(),
+  ]);
 
   res.status(200).json({
     success: true,
     message: "Tweets retrieved",
     data: tweets,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   });
 });
 

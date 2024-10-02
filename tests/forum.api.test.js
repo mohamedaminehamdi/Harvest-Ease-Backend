@@ -67,3 +67,19 @@ test("comment API: list, create via body, author-only edit and delete", async ()
   assert.equal((await api(`/forum/comments/${commentId}`, { method: "DELETE", token: bob.token })).status, 200);
   assert.equal((await api(`/forum/tweets/${tweetId}`, { token: alice.token })).body.data.comments.length, 0);
 });
+
+test("tweets are paginated newest first", async () => {
+  const { token } = await newUser();
+  for (let i = 1; i <= 5; i++) await api("/forum/tweets", { method: "POST", token, body: { content: `post ${i}` } });
+
+  const first = await api("/forum/tweets?limit=2", { token });
+  assert.deepEqual(first.body.data.map((t) => t.content), ["post 5", "post 4"]);
+  assert.equal(first.body.pagination.limit, 2);
+  assert.ok(first.body.pagination.total >= 5);
+
+  const second = await api("/forum/tweets?limit=2&page=2", { token });
+  assert.deepEqual(second.body.data.map((t) => t.content), ["post 3", "post 2"]);
+
+  assert.equal((await api("/forum/tweets?limit=1000", { token })).body.pagination.limit, 50);
+  assert.equal((await api("/forum/tweets?page=-3&limit=abc", { token })).body.pagination.page, 1);
+});
