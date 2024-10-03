@@ -1,4 +1,5 @@
 import Tweet from '../../models/tweets.js';
+import Comment from '../../models/comments.js';
 import { asyncHandler } from '../../middlewares/errorHandler.js';
 
 export const createTweet = asyncHandler(async (req, res) => {
@@ -136,6 +137,7 @@ export const deleteTweet = asyncHandler(async (req, res) => {
   }
 
   await Tweet.findByIdAndDelete(id);
+  await Comment.deleteMany({ tweetId: id }); // don't leave orphaned comments behind
 
   res.status(200).json({
     success: true,

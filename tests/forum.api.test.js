@@ -83,3 +83,15 @@ test("tweets are paginated newest first", async () => {
   assert.equal((await api("/forum/tweets?limit=1000", { token })).body.pagination.limit, 50);
   assert.equal((await api("/forum/tweets?page=-3&limit=abc", { token })).body.pagination.page, 1);
 });
+
+test("deleting a tweet deletes its comments", async () => {
+  const { token } = await newUser();
+  const { body } = await api("/forum/tweets", { method: "POST", token, body: { content: "Short-lived" } });
+  const tweetId = body.data._id;
+  await api(`/forum/tweets/${tweetId}/comments`, { method: "POST", token, body: { content: "first" } });
+  await api(`/forum/tweets/${tweetId}/comments`, { method: "POST", token, body: { content: "second" } });
+  assert.equal((await api(`/forum/tweets/${tweetId}/comments`, { token })).body.data.length, 2);
+
+  await api(`/forum/tweets/${tweetId}`, { method: "DELETE", token });
+  assert.equal((await api(`/forum/tweets/${tweetId}/comments`, { token })).body.data.length, 0);
+});
