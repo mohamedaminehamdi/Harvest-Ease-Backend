@@ -1,4 +1,10 @@
+import mongoose from "mongoose";
 import User from "../models/user.js";
+import Tweet from "../models/tweets.js";
+import Comment from "../models/comments.js";
+import Event from "../models/event.js";
+import ResourceUsage from "../models/resourceUsage.js";
+import ChatMessage from "../models/chatMessage.js";
 import { asyncHandler } from "../middlewares/errorHandler.js";
 import bcrypt from "bcryptjs";
 
@@ -129,5 +135,36 @@ export const changePassword = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Password changed successfully",
+  });
+});
+
+// Delete the signed-in user's account and everything it owns
+export const deleteAccount = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const user = await User.findByIdAndDelete(userId);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  const tweetIds = await Tweet.find({ userId }).distinct("_id");
+  const commentIds = await Comment.find({ userId }).distinct("_id");
+  await Promise.all([
+    Tweet.deleteMany({ userId }),
+    Comment.deleteMany({ userId }),
+    Comment.deleteMany({ tweetId: mongoose.trusted({ $in: tweetIds }) }), // others' comments on their tweets
+    Tweet.updateMany({ likes: userId }, { $pull: { likes: userId } }),
+    Tweet.updateMany({ comments: mongoose.trusted({ $in: commentIds }) }, { $pull: { comments: { $in: commentIds } } }),
+    Event.deleteMany({ userId }),
+    ResourceUsage.deleteMany({ userId }),
+    ChatMessage.deleteMany({ userId }),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    message: "Account deleted",
   });
 });

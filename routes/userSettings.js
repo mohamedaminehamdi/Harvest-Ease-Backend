@@ -2,7 +2,7 @@ import express from "express";
 const router = express.Router();
 import User from "../models/user.js"
 import mongoose from "mongoose"
-import { changePassword } from "../controllers/userController.js";
+import { changePassword, deleteAccount } from "../controllers/userController.js";
 
 // Users may only modify their own account
 const selfOnly = (req, res, next) => {
@@ -71,18 +71,5 @@ router.put('/users/:userId/email', selfOnly, async (req, res) => {
   }
 });
 // **Delete User**
-router.delete('/users/:userId', selfOnly, async (req, res) => {
-  try {
-    const deletedUser = await User.findByIdAndDelete(req.user._id);
-
-    if (!deletedUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.status(200).json({ message: 'User deleted successfully' }); // Informative message
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.delete('/users/:userId', selfOnly, deleteAccount);
 export default router;
