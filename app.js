@@ -63,6 +63,12 @@ const upload = multer({
     cb(err);
   },
 });
+// Liveness/readiness probe for deploys and uptime checks
+app.get("/healthz", (req, res) => {
+  const dbUp = mongoose.connection.readyState === 1;
+  res.status(dbUp ? 200 : 503).json({ status: dbUp ? "ok" : "unavailable", db: dbUp ? "up" : "down" });
+});
+
 // Slow down password guessing and account spam
 app.use("/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: Number(process.env.AUTH_RATE_LIMIT) || 20 }));
 app.post("/auth/register", upload.single("picture"), validateRegister, register);
