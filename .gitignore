@@ -12,3 +12,6 @@ node_modules/
 
 # Ignore user uploads
 public/assets/
+
+# mongod binaries downloaded for tests in CI
+.mongodb-binaries/
