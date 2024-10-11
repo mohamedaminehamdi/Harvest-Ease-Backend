@@ -1,154 +1,190 @@
-/**
- * HarvestEase API Documentation
- * 
- * Backend URL: http://localhost:5000
- * Frontend URL: http://localhost:3000
- * 
- * Authentication: JWT (send `Authorization: Bearer <token>` on all non-/auth routes)
- * Response Format: { success, message, user/data, token?, error? }
- */
+# HarvestEase API Documentation
 
-# Authentication APIs
+- Backend URL: `http://localhost:5000`
+- Frontend origin (CORS): `http://localhost:3000`, configurable with `CORS_ORIGIN`
+- Authentication: send `Authorization: Bearer <token>` on every route except `/auth/*`, `/assets/*` and `/healthz`. Tokens come from register, login or sync-user and are valid for 7 days.
+- Response format: `{ success, message, data | user, ... }`. Errors are `{ success: false, message, errors? }`.
+- Ownership: users can only change or delete their own tweets, comments, events, resource records and account. Anything that sets an owner (`userId`) uses the token, never the request body.
+
+# Authentication APIs (`/auth`, rate-limited per IP)
 
 ## POST /auth/register
-Register new user with email and password
-Body: { name, email, password, picturePath? }
-Response: { success: boolean, message: string, user: User, token: string }
+Register with email and password. Send JSON, or `multipart/form-data` with an optional `picture` file (PNG/JPEG/WebP/GIF, max 5 MB). Uploaded pictures are renamed, and `picturePath` is set to the stored file name, which is served at `/assets/<picturePath>`.
+Body: `{ name, email, password, picturePath? }`
+Response 201: `{ success, message, user, token }`. 400 on validation errors, including an email that's already registered.
 
 ## POST /auth/login
-Authenticate user with credentials
-Body: { email, password }
-Response: { success: boolean, message: string, user: User, token: string }
+Body: `{ email, password }` (email is case-insensitive)
+Response 200: `{ success, message, user, token }`. 401 `Invalid credentials` for an unknown email or wrong password.
 
-# User APIs
+## POST /auth/sync-user
+Exchange a Clerk session for a backend token, creating the user on first sign-in.
+Headers: `Authorization: Bearer <Clerk session JWT>`
+Body: `{ name? }`. The email always comes from Clerk and must be verified there.
+Response 200: `{ success, message, user, token }`. 401 for an invalid session, 403 if the email isn't verified, 503 if Clerk isn't configured.
+
+# User APIs (`/users`)
+
+## GET /users/profile
+Your own full profile (without the password).
+Response: `{ success, message, user }`
 
 ## GET /users/profile/:userId
-Get user profile information
-Response: { success: boolean, user: User }
+Another user's public profile: `name, picturePath, farmName, location, bio, website, createdAt`. Your own id returns the full profile.
 
 ## PUT /users/profile/:userId
-Update user profile
-Body: { name?, farmName?, location?, phone?, bio?, website?, picturePath? }
-Response: { success: boolean, user: User }
+Update your own profile (403 for anyone else).
+Body: `{ name?, farmName?, location?, phone?, bio?, website? (http/https), picturePath? }`. Other fields are ignored.
+Response: `{ success, message, user }`
 
 ## POST /users/change-password
-Change user password
-Body: { oldPassword, newPassword }
-Response: { success: boolean, message: string }
+Body: `{ oldPassword, newPassword }` (new password at least 6 characters and different from the old one)
+Response: `{ success, message }`. 401 if `oldPassword` is wrong.
 
-# Forum APIs
+## DELETE /users/profile
+Delete your account along with your tweets, comments, likes, events, resource records and chat history.
+Response: `{ success, message }`
+
+# Settings APIs (`/settings`, used by the older pages)
+
+- `GET /settings/users`: `{ users: [{ _id, name, picturePath }] }`
+- `GET /settings/users/:userId`: `{ name }`
+- `PUT /settings/users/:userId`: change password, body `{ oldPassword, newPassword }` (own account only)
+- `PUT /settings/users/:userId/email`: body `{ newEmail }` (own account only)
+- `DELETE /settings/users/:userId`: same as `DELETE /users/profile` (own account only)
+
+# Forum APIs (`/forum`)
 
 ## GET /forum/tweets
-Get all tweets
-Response: { success: boolean, data: Tweet[] }
+Query: `{ page? (default 1), limit? (default 20, max 50) }`, newest first.
+Response: `{ success, data: Tweet[], pagination: { page, limit, total, pages } }`. Each tweet's `userId` is populated with `{ name, picturePath }`.
 
 ## POST /forum/tweets
-Create new tweet
-Body: { content, image?, userId }
-Response: { success: boolean, data: Tweet }
+Body: `{ content (max 2000 chars), image? }`
+Response 201: `{ success, data: Tweet }`
+
+## GET /forum/tweets/:id
+Response: `{ success, data: Tweet }` with `userId` and `comments` populated.
 
 ## PUT /forum/tweets/:id
-Update tweet
-Body: { content, image? }
-Response: { success: boolean, data: Tweet }
+Author only. Body: `{ content, image? }`
+Response: `{ success, data: Tweet }`
 
 ## DELETE /forum/tweets/:id
-Delete tweet
-Response: { success: boolean, message: string }
+Author only. Also deletes the tweet's comments.
 
 ## POST /forum/tweets/:id/like
-Toggle like on tweet
-Body: { userId }
-Response: { success: boolean, data: Tweet }
+Toggles your like (`PUT /forum/tweets/:id/likes` does the same).
+Response: `{ success, message, data: Tweet }`, where `data.likes` lists the ids of users who liked it.
 
-## GET /forum/tweets/:id/comments
-Get tweet comments
-Response: { success: boolean, data: Comment[] }
+## GET /forum/tweets/:tweetId/comments
+Response: `{ success, data: Comment[] }` with `userId` populated, newest first.
 
 ## POST /forum/comments
-Create comment on tweet
-Body: { tweetId, content, userId }
-Response: { success: boolean, data: Comment }
+Body: `{ tweetId, content (max 1000 chars) }`. `POST /forum/tweets/:tweetId/comments` with `{ content }` does the same.
+Response 201: `{ success, data: Comment }`. 404 if the tweet doesn't exist.
 
-# Scheduler APIs
+## PUT /forum/comments/:id
+Author only. Body: `{ content }`
+
+## DELETE /forum/comments/:id
+Author only.
+
+## PUT /forum/comments/:commentId/replies
+Body: `{ reply }`. Appends a text reply.
+
+# Scheduler APIs (`/scheduler`; `/Farm-scheduler` still works)
+
+Categories: `general, planting, watering, harvesting, maintenance`. Priorities: `low, medium, high`.
 
 ## GET /scheduler/events
-Get all events for user
-Query: { startDate?, endDate?,category? }
-Response: { success: boolean, data: Event[] }
+Your events, sorted by start date.
+Query: `{ startDate?, endDate?, category? }`
+Response: `{ success, data: Event[] }`
 
 ## GET /scheduler/events/by-date
-Get events for specific date
-Query: { date (required) }
-Response: { success: boolean, data: Event[] }
+Query: `{ date (required, e.g. 2024-10-01) }`
+Response: `{ success, data: Event[] }`
+
+## GET /scheduler/events/:id
+Response: the event object (404 if it isn't yours).
 
 ## POST /scheduler/events
-Create new event
-Body: { title, description?, startDate, endDate?, category, priority, notes? }
-Response: { success: boolean, data: Event }
+`POST /scheduler/add-event` does the same.
+Body: `{ title, startDate, endDate? (defaults to startDate + 1 hour), description?, category?, priority?, notes? }`
+Response 201: `{ success, data: Event }`. 400 if the dates are invalid or `endDate` is before `startDate`.
 
 ## PUT /scheduler/events/:id
-Update event
-Body: { title?, description?, startDate?, endDate?, category?, priority?, notes? }
-Response: { success: boolean, data: Event }
+Owner only. Body: any of the fields above.
 
 ## DELETE /scheduler/events/:id
-Delete event
-Response: { success: boolean, message: string }
+Owner only.
 
-# Resources APIs
+# Resources APIs (`/resources`; `/Resources-tracker` still works)
+
+Resource names: `water, fertilizer, pesticide, seed, equipment, labor`. Units: `liters, kg, units, hours`. Actions: `addition, usage, replacement`.
 
 ## GET /resources/usage
-Get resource usage records
-Query: { startDate?, endDate?, resourceName? }
-Response: { success: boolean, data: Resource[], summary: { totalCost, count } }
+Query: `{ startDate?, endDate?, resourceName? }`
+Response: `{ success, data: Resource[], summary: { totalCost, count } }`
 
 ## POST /resources/usage
-Log resource usage
-Body: { resourceName, quantity, unit, cost, action?, notes? }
-Response: { success: boolean, data: Resource }
+Body: `{ resourceName, quantity (number ≥ 0), unit, cost (number ≥ 0), action?, notes? }`
+Response 201: `{ success, data: Resource }`
 
 ## PUT /resources/usage/:id
-Update resource usage
-Body: { resourceName?, quantity?, unit?, cost?, action?, notes? }
-Response: { success: boolean, data: Resource }
+Owner only. Body: any of the fields above.
 
 ## DELETE /resources/usage/:id
-Delete resource usage record
-Response: { success: boolean, message: string }
+Owner only.
 
-# Health APIs
+# Health APIs (`/health`)
 
 ## POST /health/analyze
-Analyze plant health
-Body: { imageUrl, plantType? }
-Response: { success: boolean, data: { healthScore, confidence, diseases, recommendations } }
+Body: `{ imageUrl (http/https URL), plantType? }`
+Response: `{ success, data: { plantType, healthScore, confidence, diseases, recommendations } }`. This is a placeholder result until a model is connected.
 
 ## GET /health/plant-info/:plantType
-Get plant information
-Response: { success: boolean, data: PlantInfo }
+Response: `{ success, data: PlantInfo }`
 
-# Chatbot APIs
+# Chatbot APIs (`/chatbot`)
 
 ## POST /chatbot/query
-Send message to chatbot
-Body: { message, context? }
-Response: { success: boolean, data: { query, response, timestamp } }
+Answered by Gemini (`GEMINI_MODEL`) using your last 10 messages as context. Falls back to built-in farming tips when `GOOGLE_GEN_AI_KEY` isn't set or Gemini fails.
+Body: `{ message (max 2000 chars) }`
+Response: `{ success, data: { query, response, timestamp } }`
 
 ## GET /chatbot/history
-Get chat history
-Response: { success: boolean, data: ChatMessage[] }
+Your last 50 messages, oldest first.
+Response: `{ success, data: [{ role: "user" | "bot", content, createdAt }] }`
+
+## DELETE /chatbot/history
+Clears your chat history.
+
+## POST /chatbot
+Legacy endpoint for the older pages. Body: `{ userInput, history }`. Responds with plain text.
+
+# Other
+
+## GET /healthz
+No auth. Returns 200 `{ status: "ok", db: "up" }`, or 503 when the database is unreachable.
+
+## GET /assets/:file
+Uploaded profile pictures.
 
 # Error Handling
 
-All endpoints return error responses in format:
-{ success: false, message: string, error?: string }
+All errors use the format `{ success: false, message, errors? }`. 5xx responses never include internal details.
 
-Common HTTP Status Codes:
+Common HTTP status codes:
 - 200: Success
 - 201: Created
-- 400: Validation error
-- 401: Unauthorized
+- 400: Validation error or malformed id
+- 401: Missing/invalid token, or wrong credentials
+- 403: Not the owner of the resource
 - 404: Not found
 - 409: Conflict (duplicate)
+- 413: Request body over 1 MB
+- 429: Too many auth requests, see `Retry-After`
 - 500: Server error
+- 502/503: Upstream (Clerk) failure or service not configured
