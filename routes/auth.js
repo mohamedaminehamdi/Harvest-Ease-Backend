@@ -1,8 +1,14 @@
 import express from "express";
-import { login } from "../controllers/auth.js";
+import { login, register, syncUser } from "../controllers/auth.js";
 const router = express.Router();
 
-// Login User
+// Register new user
+router.post("/register", register);
+
+// Login user
 router.post("/login", login);
+
+// Sync user with Clerk
+router.post("/sync-user", syncUser);
 
 export default router;
