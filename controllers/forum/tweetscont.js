@@ -1,108 +1,135 @@
-import  Tweet from '../../models/tweets.js'; 
-import mongoose from 'mongoose'
-export async function createTweet  (req, res)  {
-  try {
-    const { content, ownerId } = req.body;
+import Tweet from '../../models/tweets.js';
+import { asyncHandler } from '../../middlewares/errorHandler.js';
 
-     if (!mongoose.Types.ObjectId.isValid(ownerId)) {
-       return res.status(400).json({ error: 'Invalid owner ID format' });
-    }
+export const createTweet = asyncHandler(async (req, res) => {
+  const { content, image } = req.body;
+  const userId = req.user?._id || req.body.userId;
 
-    const newTweet = new Tweet({ content, owner: ownerId });
-    await newTweet.save();
-
-    res.status(201).json({
-      "msg":"succeed"
+  if (!content || content.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Content is required",
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
   }
-};
 
-export async function updateTweet (req, res) {
-  try {
-    const tweetId = req.params.tweetId;
-    const { content } = req.body;
+  const newTweet = new Tweet({
+    userId,
+    content,
+    image,
+    likes: [],
+    comments: [],
+  });
 
-    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
-      return res.status(400).json({ error: 'Invalid tweet ID format' });
-    }
+  const savedTweet = await newTweet.save();
 
-    const updatedTweet = await Tweet.findByIdAndUpdate(tweetId, { content }, { new: true }); // Return updated tweet
+  res.status(201).json({
+    success: true,
+    message: "Tweet created",
+    data: savedTweet,
+  });
+});
 
-    if (!updatedTweet) {
-      return res.status(404).json({ error: 'Tweet not found' });
-    }
+export const getAllTweets = asyncHandler(async (req, res) => {
+  const tweets = await Tweet.find()
+    .populate("userId", "name picturePath")
+    .sort({ createdAt: -1 });
 
-    res.json(updatedTweet);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+  res.status(200).json({
+    success: true,
+    message: "Tweets retrieved",
+    data: tweets,
+  });
+});
+
+export const getTweetById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const tweet = await Tweet.findById(id)
+    .populate("userId", "name picturePath")
+    .populate("comments");
+
+  if (!tweet) {
+    return res.status(404).json({
+      success: false,
+      message: "Tweet not found",
+    });
   }
-};
 
-export async function deleteTweet (req, res) {
-  try {
-    const tweetId = req.params.tweetId;
+  res.status(200).json({
+    success: true,
+    message: "Tweet retrieved",
+    data: tweet,
+  });
+});
 
-    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
-      return res.status(400).json({ error: 'Invalid tweet ID format' });
-    }
+export const updateTweet = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { content, image } = req.body;
 
-    const deletedTweet = await Tweet.findByIdAndDelete(tweetId);
+  const tweet = await Tweet.findByIdAndUpdate(
+    id,
+    { content, image },
+    { new: true, runValidators: true }
+  );
 
-    if (!deletedTweet) {
-      return res.status(404).json({ error: 'Tweet not found' });
-    }
-
-    res.json({ message: 'Tweet deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+  if (!tweet) {
+    return res.status(404).json({
+      success: false,
+      message: "Tweet not found",
+    });
   }
-};
-export async function getAllComments (req, res) {
-    try {
-      const comments = await Comment.find(); // Fetch all comments
-      res.json(comments);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  };
-  export async function getAllTweets(req, res) {
-    try {
-      // Fetch all tweets (replace with specific filtering if needed)
-      const tweets = await Tweet.find();
-  
-      res.json(tweets);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+
+  res.status(200).json({
+    success: true,
+    message: "Tweet updated",
+    data: tweet,
+  });
+});
+
+export const deleteTweet = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const tweet = await Tweet.findByIdAndDelete(id);
+
+  if (!tweet) {
+    return res.status(404).json({
+      success: false,
+      message: "Tweet not found",
+    });
   }
-  export async function updateLikes(req, res) {
-    const { tweetId, liked } = req.body; // Expect "liked" to be true or false
-  
-    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
-      return res.status(400).json({ error: 'Invalid tweet ID format' });
-    }
-  
-    const update = {
-      $inc: { likes: liked ? 1 : -1 } // Increment or decrement likes based on "liked" value
-    };
-  
-    try {
-      const updatedTweet = await Tweet.findByIdAndUpdate(tweetId, update, { new: true });
-  
-      if (!updatedTweet) {
-        return res.status(404).json({ error: 'Tweet not found' });
-      }
-  
-      res.json(updatedTweet); // Respond with the updated tweet
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+
+  res.status(200).json({
+    success: true,
+    message: "Tweet deleted",
+  });
+});
+
+export const likeTweet = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user?._id || req.body.userId;
+
+  const tweet = await Tweet.findById(id);
+
+  if (!tweet) {
+    return res.status(404).json({
+      success: false,
+      message: "Tweet not found",
+    });
   }
+
+  const isLiked = tweet.likes.includes(userId);
+
+  if (isLiked) {
+    tweet.likes = tweet.likes.filter((id) => id.toString() !== userId.toString());
+  } else {
+    tweet.likes.push(userId);
+  }
+
+  await tweet.save();
+
+  res.status(200).json({
+    success: true,
+    message: isLiked ? "Like removed" : "Tweet liked",
+    data: tweet,
+  });
+});

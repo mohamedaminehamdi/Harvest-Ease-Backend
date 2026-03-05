@@ -1,60 +1,93 @@
 import Comment from '../../models/comments.js';
-import Tweet from '../../models/tweets.js'; // Import your Tweet model
-import mongoose from 'mongoose';
+import Tweet from '../../models/tweets.js';
+import { asyncHandler } from '../../middlewares/errorHandler.js';
 
-export async function createComment(req, res) {
-  try {
-    const tweetId = req.params.tweetId;
-    const { content } = req.body;
+export const createComment = asyncHandler(async (req, res) => {
+  const tweetId = req.params.tweetId;
+  const { content } = req.body;
+  const userId = req.user?._id || req.body.userId;
 
-    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
-      return res.status(400).json({ error: 'Invalid tweet ID format' });
-    }
-
-    const newComment = new Comment({ content, tweet: tweetId , ownerId });
-    await newComment.save();
-
-    // Update the corresponding tweet to include the new comment
-    const updatedTweet = await Tweet.findByIdAndUpdate(
-      tweetId,
-      { $push: { comments: newComment._id } }, // Assuming the comments field is an array of comment IDs
-      { new: true }
-    );
-
-    if (!updatedTweet) {
-      return res.status(404).json({ error: 'Tweet not found' });
-    }
-
-    res.status(201).json(newComment);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+  if (!content || content.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Content is required",
+    });
   }
-}
 
-// Function to add a reply to a comment
-export async function addReply(req, res) {
-  try {
-    const commentId = req.params.commentId;
-    const { reply } = req.body;
+  const newComment = new Comment({ 
+    content, 
+    tweetId, 
+    userId,
+  });
+  
+  const savedComment = await newComment.save();
 
-    if (!mongoose.Types.ObjectId.isValid(commentId)) {
-      return res.status(400).json({ error: 'Invalid comment ID format' });
-    }
+  // Update tweet's comment count
+  await Tweet.findByIdAndUpdate(
+    tweetId,
+    { $push: { comments: savedComment._id } },
+    { new: true }
+  );
 
-    const comment = await Comment.findByIdAndUpdate(
-      commentId,
-      { $push: { replies: reply } },
-      { new: true }
-    );
+  res.status(201).json({
+    success: true,
+    message: "Comment created",
+    data: savedComment,
+  });
+});
 
-    if (!comment) {
-      return res.status(404).json({ error: 'Comment not found' });
-    }
+export const getCommentsByTweet = asyncHandler(async (req, res) => {
+  const { tweetId } = req.params;
 
-    res.json(comment);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+  const comments = await Comment.find({ tweetId })
+    .populate("userId", "name picturePath")
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    message: "Comments retrieved",
+    data: comments,
+  });
+});
+
+export const updateComment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+
+  const comment = await Comment.findByIdAndUpdate(
+    id,
+    { content },
+    { new: true, runValidators: true }
+  );
+
+  if (!comment) {
+    return res.status(404).json({
+      success: false,
+      message: "Comment not found",
+    });
   }
-}
+
+  res.status(200).json({
+    success: true,
+    message: "Comment updated",
+    data: comment,
+  });
+});
+
+export const deleteComment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const comment = await Comment.findByIdAndDelete(id);
+
+  if (!comment) {
+    return res.status(404).json({
+      success: false,
+      message: "Comment not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Comment deleted",
+  });
+});
