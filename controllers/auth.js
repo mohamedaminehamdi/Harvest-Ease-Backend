@@ -19,6 +19,31 @@ const formatUserResponse = (user) => {
 export const register = async (req, res) => {
   const { name, email, password, picturePath } = req.body;
   try {
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and password are required",
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    // Validate password strength (minimum 6 characters)
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -49,10 +74,10 @@ export const register = async (req, res) => {
       token,
     });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Registration failed",
-      error: error.message,
+      message: "Registration failed",
     });
   }
 };
@@ -95,10 +120,10 @@ export const login = async (req, res) => {
       token,
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Login failed",
-      error: error.message,
+      message: "Login failed",
     });
   }
 };
@@ -115,14 +140,27 @@ export const syncUser = async (req, res) => {
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
     let user = await User.findOne({ email });
 
     if (!user) {
       // Create new user synced from Clerk
+      // Generate a random hash for Clerk-synced users (no password login)
+      const salt = await bcrypt.genSalt(10);
+      const randomHash = await bcrypt.hash(Math.random().toString(36), salt);
+
       const newUser = new User({
         email,
         name,
-        password: "", // No password for Clerk-synced users
+        password: randomHash, // Random hash prevents password login
         role: "farmer",
       });
       user = await newUser.save();
@@ -138,10 +176,10 @@ export const syncUser = async (req, res) => {
       token,
     });
   } catch (error) {
+    console.error("Sync error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Sync failed",
-      error: error.message,
+      message: "Sync failed",
     });
   }
 };
