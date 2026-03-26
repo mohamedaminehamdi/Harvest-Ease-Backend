@@ -65,31 +65,50 @@ export const getTweetById = asyncHandler(async (req, res) => {
 export const updateTweet = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { content, image } = req.body;
+  const userId = req.user?._id || req.body.userId;
 
-  const tweet = await Tweet.findByIdAndUpdate(
+  if (!content || content.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Content is required",
+    });
+  }
+
+  const tweet = await Tweet.findById(id);
+
+  if (!tweet) {
+    return res.status(404).json({
+      success: false,
+      message: "Tweet not found",
+    });
+  }
+
+  // Verify user owns the tweet
+  if (tweet.userId.toString() !== userId.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: "Not authorized to update this tweet",
+    });
+  }
+
+  const updatedTweet = await Tweet.findByIdAndUpdate(
     id,
     { content, image },
     { new: true, runValidators: true }
   );
 
-  if (!tweet) {
-    return res.status(404).json({
-      success: false,
-      message: "Tweet not found",
-    });
-  }
-
   res.status(200).json({
     success: true,
     message: "Tweet updated",
-    data: tweet,
+    data: updatedTweet,
   });
 });
 
 export const deleteTweet = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user?._id || req.body.userId;
 
-  const tweet = await Tweet.findByIdAndDelete(id);
+  const tweet = await Tweet.findById(id);
 
   if (!tweet) {
     return res.status(404).json({
@@ -97,6 +116,16 @@ export const deleteTweet = asyncHandler(async (req, res) => {
       message: "Tweet not found",
     });
   }
+
+  // Verify user owns the tweet
+  if (tweet.userId.toString() !== userId.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: "Not authorized to delete this tweet",
+    });
+  }
+
+  await Tweet.findByIdAndDelete(id);
 
   res.status(200).json({
     success: true,
