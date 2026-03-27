@@ -65,31 +65,60 @@ export const updateResourceUsage = asyncHandler(async (req, res) => {
   const updates = req.body;
   const userId = req.user._id || req.body.userId;
 
-  const usage = await ResourceUsage.findByIdAndUpdate(
-    id,
-    { ...updates, userId },
-    { new: true, runValidators: true }
-  );
+  // Validate provided fields
+  if (updates.resourceName && !["water", "fertilizer", "pesticide", "seed", "equipment", "labor"].includes(updates.resourceName)) {
+    return res.status(400).json({ success: false, message: "Invalid resource name" });
+  }
+  if (updates.unit && !["liters", "kg", "units", "hours"].includes(updates.unit)) {
+    return res.status(400).json({ success: false, message: "Invalid unit" });
+  }
+  if (updates.quantity !== undefined && updates.quantity < 0) {
+    return res.status(400).json({ success: false, message: "Quantity cannot be negative" });
+  }
+  if (updates.cost !== undefined && updates.cost < 0) {
+    return res.status(400).json({ success: false, message: "Cost cannot be negative" });
+  }
+
+  const usage = await ResourceUsage.findById(id);
 
   if (!usage) {
     return res.status(404).json({ success: false, message: "Resource usage not found" });
   }
 
+  // Verify user owns the resource usage record
+  if (usage.userId.toString() !== userId.toString()) {
+    return res.status(403).json({ success: false, message: "Not authorized to update this record" });
+  }
+
+  const updatedUsage = await ResourceUsage.findByIdAndUpdate(
+    id,
+    updates,
+    { new: true, runValidators: true }
+  );
+
   res.status(200).json({
     success: true,
     message: "Resource usage updated",
-    data: usage,
+    data: updatedUsage,
   });
 });
 
 export const deleteResourceUsage = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user._id || req.body.userId;
 
-  const usage = await ResourceUsage.findByIdAndDelete(id);
+  const usage = await ResourceUsage.findById(id);
 
   if (!usage) {
     return res.status(404).json({ success: false, message: "Resource usage not found" });
   }
+
+  // Verify user owns the resource usage record
+  if (usage.userId.toString() !== userId.toString()) {
+    return res.status(403).json({ success: false, message: "Not authorized to delete this record" });
+  }
+
+  await ResourceUsage.findByIdAndDelete(id);
 
   res.status(200).json({
     success: true,

@@ -6,10 +6,34 @@ export const createEvent = asyncHandler(async (req, res) => {
   const { title, description, startDate, endDate, category, priority, notes } = req.body;
   const userId = req.user?._id || req.body.userId;
 
+  // Validation
   if (!title || !startDate) {
     return res.status(400).json({
       success: false,
       message: "Title and startDate are required",
+    });
+  }
+
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Title must be a non-empty string",
+    });
+  }
+
+  const validCategories = ['general', 'planting', 'watering', 'harvesting', 'maintenance'];
+  if (category && !validCategories.includes(category)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid category",
+    });
+  }
+
+  const validPriorities = ['low', 'medium', 'high'];
+  if (priority && !validPriorities.includes(priority)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid priority",
     });
   }
 
@@ -20,6 +44,13 @@ export const createEvent = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Invalid date format",
+    });
+  }
+
+  if (end.isBefore(start)) {
+    return res.status(400).json({
+      success: false,
+      message: "End date must be after start date",
     });
   }
 
@@ -69,31 +100,86 @@ export const getEvents = asyncHandler(async (req, res) => {
 export const updateEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
+  const userId = req.user?._id || req.body.userId;
 
-  const event = await Event.findByIdAndUpdate(
+  // Validate category if provided
+  if (updates.category) {
+    const validCategories = ['general', 'planting', 'watering', 'harvesting', 'maintenance'];
+    if (!validCategories.includes(updates.category)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid category",
+      });
+    }
+  }
+
+  // Validate priority if provided
+  if (updates.priority) {
+    const validPriorities = ['low', 'medium', 'high'];
+    if (!validPriorities.includes(updates.priority)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid priority",
+      });
+    }
+  }
+
+  // Validate dates if provided
+  if (updates.startDate || updates.endDate) {
+    const event = await Event.findById(id);
+    const start = updates.startDate ? moment(updates.startDate) : moment(event.startDate);
+    const end = updates.endDate ? moment(updates.endDate) : moment(event.endDate);
+
+    if (!start.isValid() || !end.isValid()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format",
+      });
+    }
+
+    if (end.isBefore(start)) {
+      return res.status(400).json({
+        success: false,
+        message: "End date must be after start date",
+      });
+    }
+  }
+
+  const event = await Event.findById(id);
+
+  if (!event) {
+    return res.status(404).json({
+      success: false,
+      message: "Event not found",
+    });
+  }
+
+  // Verify user owns the event
+  if (event.userId.toString() !== userId.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: "Not authorized to update this event",
+    });
+  }
+
+  const updatedEvent = await Event.findByIdAndUpdate(
     id,
     updates,
     { new: true, runValidators: true }
   );
 
-  if (!event) {
-    return res.status(404).json({
-      success: false,
-      message: "Event not found",
-    });
-  }
-
   res.status(200).json({
     success: true,
     message: "Event updated",
-    data: event,
+    data: updatedEvent,
   });
 });
 
 export const deleteEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user?._id || req.body.userId;
 
-  const event = await Event.findByIdAndDelete(id);
+  const event = await Event.findById(id);
 
   if (!event) {
     return res.status(404).json({
@@ -101,6 +187,22 @@ export const deleteEvent = asyncHandler(async (req, res) => {
       message: "Event not found",
     });
   }
+
+  // Verify user owns the event
+  if (event.userId.toString() !== userId.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: "Not authorized to delete this event",
+    });
+  }
+
+  await Event.findByIdAndDelete(id);
+
+  res.status(200).json({
+    success: true,
+    message: "Event deleted",
+  });
+});
 
   res.status(200).json({
     success: true,
